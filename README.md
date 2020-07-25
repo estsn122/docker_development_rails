@@ -117,3 +117,47 @@ $ rails db:create
 rails s -b 0.0.0.0
 ```
 
+## 不明点
+
+元々Dockerファイルは次のようにして実行しようとしてたが、  
+`rails new`をしてからの`bundle`コマンドでpermission errorが起こり、上手く行かなかった。
+
+Dockerfile
+```
+FROM ruby:2.6.6
+
+# ユーザー作成
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID devel
+RUN useradd -u $UID -g devel -m devel
+RUN echo "devel ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# パッケージ関連の処理
+RUN apt-get update -qq && apt-get install -y build-essential libpq-dev nodejs
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee \
+    /etc/apt/sources.list.d/yarn.list
+RUN apt update && apt install yarn
+RUN apt-get install -y vim
+
+RUN mkdir /app && chown devel /app
+WORKDIR /app
+
+COPY Gemfile Gemfile
+COPY Gemfile.lock Gemfile.lock
+RUN bundle install
+
+USER devel
+```
+
+調べても解決方法がよくわからなかったというのと、以下の理由によりとりあえずrootユーザーで行った。
+- ここのユーザー作成の手順は必ずしも必要とは思えなかった
+- 参考書(パーフェクトRoR)に、開発環境ではパーミッションが複雑だからと、rootユーザーで起動する方法を紹介していた
+- 知人もrootユーザーで良いのではと言っていた
+
+Rails6実践ガイドではユーザー作成して問題なくできているので、もし解決したい場合は参考に  
+ただし、mysqlではなくpostgresqlで行っている。
+
+
+
